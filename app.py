@@ -7,48 +7,36 @@ import numpy as np
 
 import pandas as pd
 
-import pickle
-s = pickle.load(open('scaling.pkl','rb'))
-m = pickle.load(open('regmodel.pkl','rb'))
 
-print("scaler type:", type(s))
-print("scaler.n_features_in_:", getattr(s, "n_features_in_", None))
-print("len(scaler.scale_):", len(getattr(s, "scale_", [])))
-print("scaler.mean_ sample:", getattr(s, "mean_", None)[:5] if getattr(s, "mean_", None) is not None else None)
-print("---")
-print("model type:", type(m))
-print("model.n_features_in_:", getattr(m, "n_features_in_", None))
-print("model.feature_names_in_:", getattr(m, "feature_names_in_", None))
+app=Flask(__name__)
+## Load the model
+regmodel=pickle.load(open('regmodel.pkl','rb'))
+scalar=pickle.load(open('scaling.pkl','rb'))
+@app.route('/')
+def home():
+    return render_template('home.html')
 
-# app=Flask(__name__)
-# ## Load the model
-# regmodel=pickle.load(open('regmodel.pkl','rb'))
-# scalar=pickle.load(open('scaling.pkl','rb'))
-# @app.route('/')
-# def home():
-#     return render_template('home.html')
+@app.route('/predict_api',methods=['POST'])
+def predict_api():
+    data=request.json['data']
+    print(data)
+    print(np.array(list(data.values())).reshape(1,-1))
+    new_data=scalar.transform(np.array(list(data.values())).reshape(1,-1))
+    output=regmodel.predict(new_data)
+    print(output[0])
+    return jsonify(output[0])
 
-# @app.route('/predict_api',methods=['POST'])
-# def predict_api():
-#     data=request.json['data']
-#     print(data)
-#     print(np.array(list(data.values())).reshape(1,-1))
-#     new_data=scalar.transform(np.array(list(data.values())).reshape(1,-1))
-#     output=regmodel.predict(new_data)
-#     print(output[0])
-#     return jsonify(output[0])
-
-# @app.route('/predict',methods=['POST'])
-# def predict():
-#     data=[float(x) for x in request.form.values()]
-#     final_input=scalar.transform(np.array(data).reshape(1,-1))
-#     print(final_input)
-#     output=regmodel.predict(final_input)[0]
-#     return render_template("home.html",prediction_text="The House price prediction is {}".format(output))
+@app.route('/predict',methods=['POST'])
+def predict():
+    data=[float(x) for x in request.form.values()]
+    final_input=scalar.transform(np.array(data).reshape(1,-1))
+    print(final_input)
+    output=regmodel.predict(final_input)[0]
+    return render_template("home.html",prediction_text="The House price prediction is {}".format(output))
 
 
 
-# if __name__=="__main__":
-#     app.run(debug=True)
+if __name__=="__main__":
+    app.run(debug=True)
    
      
